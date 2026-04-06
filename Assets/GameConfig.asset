@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26f096669ccaf8627a614b21b9417da4, type: 3}
+  m_Name: GameConfig
+  m_EditorClassIdentifier: 
+  boxHeight: 8
+  escapeMargin: 0.1
+  escapeHoleRadius: 1
+  capRotationSpeed: 1
+  candyCount: 1600
+  candyRadius: 0
+  spawnRadius: 0
+  spawnHeight: 4.8
+  spawnInterval: 0.0001
+  layerSize: 150
+  candyBounciness: 0.1
+  candyFriction: 0.4
+  preferredMicDevice: SteelSeries Arctis Nova 5 Mono
+  fftSize: 2048
+  yinThreshold: 0.15
+  minRms: 0.01
+  noteStableMs: 100
+  forceDebounceMs: 120
+  baseImpulse: 1
+  micSensitivity: 1.6
+  maxImpulse: 4
+  maxCandySpeedY: 5
+  holeAttractionStrength: 0.15
+  lateralJitter: 0.05
+  noteC: 0.3
+  noteD: 0.4
+  noteE: 0.5
+  noteF: 0.6
+  noteG: 0.7
+  noteA: 0.85
+  noteB: 1
+  winRatio: 0.989
