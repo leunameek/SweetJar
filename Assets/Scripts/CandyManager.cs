@@ -51,6 +51,7 @@ public class CandyManager : MonoBehaviour
             GameObject candy = Instantiate(prefab, pos, Random.rotation, candyRoot);
             Rigidbody rb = candy.GetComponent<Rigidbody>();
             rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+            rb.interpolation = RigidbodyInterpolation.None;
             candyBodies.Add(rb);
 
             yield return new WaitForSeconds(config.spawnInterval);

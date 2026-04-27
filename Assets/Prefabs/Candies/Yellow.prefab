@@ -78,37 +78,16 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: aa4227d323dccba4db460e46f79547fa, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 8144599875897220005}
+      addedObject: {fileID: 5682954831584548913}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: aa4227d323dccba4db460e46f79547fa, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 5682954831584548913}
+      addedObject: {fileID: 8144599875897220005}
   m_SourcePrefab: {fileID: 100100000, guid: aa4227d323dccba4db460e46f79547fa, type: 3}
 --- !u!1 &959507497972448152 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: aa4227d323dccba4db460e46f79547fa, type: 3}
   m_PrefabInstance: {fileID: 113068474535085769}
   m_PrefabAsset: {fileID: 0}
---- !u!65 &8144599875897220005
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 959507497972448152}
-  m_Material: {fileID: 13400000, guid: 90c20e1847c2c09ba8724423350f6859, type: 2}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 5.0820246, y: 8.0397415, z: 9.000587}
-  m_Center: {x: 0, y: 0.0000023841858, z: 0.000011920929}
 --- !u!54 &5682954831584548913
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -133,6 +112,27 @@ Rigidbody:
   m_ImplicitTensor: 1
   m_UseGravity: 1
   m_IsKinematic: 0
-  m_Interpolate: 1
+  m_Interpolate: 0
   m_Constraints: 0
-  m_CollisionDetection: 0
+  m_CollisionDetection: 3
+--- !u!65 &8144599875897220005
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 959507497972448152}
+  m_Material: {fileID: 13400000, guid: 90c20e1847c2c09ba8724423350f6859, type: 2}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 5.0820246, y: 8.0397415, z: 9.000587}
+  m_Center: {x: 0, y: 0.0000023841858, z: 0.000011920929}

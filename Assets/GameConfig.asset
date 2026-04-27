@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: GameConfig
   m_EditorClassIdentifier: 
   boxHeight: 8
-  escapeMargin: 0.1
-  escapeHoleRadius: 1
+  escapeMargin: 0.3
+  escapeHoleRadius: 1.5
   capRotationSpeed: 1
   candyCount: 1600
   candyRadius: 0
@@ -22,7 +22,7 @@ MonoBehaviour:
   spawnHeight: 4.8
   spawnInterval: 0.0001
   layerSize: 150
-  candyBounciness: 0.1
+  candyBounciness: 0.35
   candyFriction: 0.4
   preferredMicDevice: SteelSeries Arctis Nova 5 Mono
   fftSize: 2048
@@ -30,13 +30,13 @@ MonoBehaviour:
   minRms: 0.01
   noteStableMs: 100
   forceDebounceMs: 120
-  baseImpulse: 1
+  baseImpulse: 2.5
   micSensitivity: 1.6
-  maxImpulse: 4
-  maxCandySpeedY: 5
-  holeAttractionStrength: 0.15
+  maxImpulse: 6
+  maxCandySpeedY: 10
+  holeAttractionStrength: 0.35
   lateralJitter: 0.05
-  noteC: 0.3
+  noteC: 0.70
   noteD: 0.4
   noteE: 0.5
   noteF: 0.6
