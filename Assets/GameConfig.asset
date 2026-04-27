@@ -16,7 +16,7 @@ MonoBehaviour:
   escapeMargin: 0.1
   escapeHoleRadius: 1
   capRotationSpeed: 1
-  candyCount: 1600
+  candyCount: 300
   candyRadius: 0
   spawnRadius: 0
   spawnHeight: 4.8
@@ -24,7 +24,7 @@ MonoBehaviour:
   layerSize: 150
   candyBounciness: 0.1
   candyFriction: 0.4
-  preferredMicDevice: SteelSeries Arctis Nova 5 Mono
+  preferredMicDevice: Comet Lake PCH-LP cAVS Digital Microphone
   fftSize: 2048
   yinThreshold: 0.15
   minRms: 0.01
