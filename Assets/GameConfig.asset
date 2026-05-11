@@ -24,7 +24,7 @@ MonoBehaviour:
   layerSize: 150
   candyBounciness: 0.35
   candyFriction: 0.4
-  preferredMicDevice: SteelSeries Arctis Nova 5 Mono
+  preferredMicDevice: "Micr\xF3fono (ME6S)"
   fftSize: 2048
   yinThreshold: 0.15
   minRms: 0.01
@@ -36,11 +36,11 @@ MonoBehaviour:
   maxCandySpeedY: 10
   holeAttractionStrength: 0.35
   lateralJitter: 0.05
-  noteC: 0.70
+  noteC: 0.7
   noteD: 0.4
   noteE: 0.5
   noteF: 0.6
   noteG: 0.7
   noteA: 0.85
   noteB: 1
-  winRatio: 0.989
+  winRatio: 0.93

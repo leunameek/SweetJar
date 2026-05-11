@@ -12,6 +12,10 @@ public class GameManager : MonoBehaviour
     public PitchDetector pitchDetector;
     public UIController ui;
 
+    [Header("Efectos Visuales")]
+    [Tooltip("Controlador de brillo del jarrón – asignar el GameObject del jarrón")]
+    public JarGlowController jarGlow;
+
     private bool won;
 
     void Start()
@@ -40,9 +44,20 @@ public class GameManager : MonoBehaviour
             candyManager.totalCandies
         );
 
+        // Pulso de brillo cada vez que hay fuerza activa
+        if (jarGlow != null && pitchDetector.LastForce > 0.01f)
+            jarGlow.TriggerNotePulse();
+
         if (candyManager.IsWon())
         {
             won = true;
+
+            // Primero la explosión visual del jarrón
+            if (jarGlow != null)
+                jarGlow.TriggerExplosion();
+
+            // Luego la pantalla de victoria (el logo aparece dentro de JarGlowController
+            // tras el flash; la win screen muestra el overlay de UI)
             ui.ShowWinScreen();
         }
     }
@@ -51,10 +66,16 @@ public class GameManager : MonoBehaviour
     {
         won = false;
         micCapture.StopCapture();
+
+        // Reiniciar brillo del jarrón
+        if (jarGlow != null)
+            jarGlow.Reset();
+
         candyManager.Spawn(config.candyCount, () => {
             bool ok = micCapture.StartCapture();
             if (!ok) Debug.LogWarning("[GameManager] No microphone found.");
         });
+
         capController.ResetAngle();
         ui.HideWinScreen();
     }
@@ -68,10 +89,16 @@ public class GameManager : MonoBehaviour
         config.capRotationSpeed = ui.capSpeedSlider.value;
 
         micCapture.StopCapture();
+
+        // Reiniciar brillo del jarrón
+        if (jarGlow != null)
+            jarGlow.Reset();
+
         candyManager.Spawn(config.candyCount, () => {
             bool ok = micCapture.StartCapture();
             if (!ok) Debug.LogWarning("[GameManager] No microphone found.");
         });
+
         capController.ResetAngle();
         ui.HideWinScreen();
     }
@@ -81,12 +108,12 @@ public class GameManager : MonoBehaviour
         if (micCapture.IsActive)
         {
             micCapture.StopCapture();
-            ui.SetMicButtonText("Start Mic");
+            ui.SetMicButtonText("Iniciar Micrófono");
         }
         else
         {
             bool ok = micCapture.StartCapture();
-            ui.SetMicButtonText(ok ? "Stop Mic" : "No Mic Found");
+            ui.SetMicButtonText(ok ? "Detener Micrófono" : "No se encontró micrófono");
         }
     }
 }

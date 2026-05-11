@@ -1,2 +1,17 @@
 fileFormatVersion: 2
 guid: de7921e72eb2d68eaa7c26b975e2b87e
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - config: {fileID: 11400000, guid: 6289be1571ebebf05976f5512de65929, type: 2}
+  - candyManager: {instanceID: 0}
+  - capController: {instanceID: 0}
+  - micCapture: {instanceID: 0}
+  - pitchDetector: {instanceID: 0}
+  - ui: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
