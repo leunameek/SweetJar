@@ -1,25 +1,20 @@
 using UnityEngine;
+using UnityEngine.UI;
+using System;
 using System.Collections;
 
 /// <summary>
-/// Controla el brillo (emisión) del material del jarrón.
-///
-/// SETUP en Inspector:
-/// 1. Asigna el MeshRenderer del jarrón translúcido en "jarRenderer".
-/// 2. El material del jarrón DEBE tener activado "Emission" en el shader
-///    (Standard o URP/Lit) para que el brillo funcione.
-/// 3. Asigna UIController para leer el progreso.
+/// Controla el brillo del jarrón y la irradiación global de la pantalla.
 ///
 /// Flujo:
-/// - A medida que escapedCount / totalCandies aumenta, el jarrón brilla más.
-/// - Al llegar al 100%, se activa la explosión de luz y aparece el logo.
+/// - A medida que escapedCount / totalCandies aumenta, el jarrón emite más luz.
+/// - En paralelo, la pantalla empieza a blanquearse progresivamente.
+/// - Al llegar al win ratio, la escena entra en blanco total, se sostiene unos segundos
+///   y luego recién cambia a la escena de victoria manteniendo ese fondo blanco.
 /// </summary>
 [RequireComponent(typeof(Renderer))]
 public class JarGlowController : MonoBehaviour
 {
-    // ─────────────────────────────────────────────────────────────
-    //  Referencias
-    // ─────────────────────────────────────────────────────────────
     [Header("Referencias")]
     [Tooltip("Renderer del jarrón translúcido (glass)")]
     public Renderer jarRenderer;
@@ -30,60 +25,51 @@ public class JarGlowController : MonoBehaviour
     [Tooltip("CandyManager para leer escaped / total directamente")]
     public CandyManager candyManager;
 
-    // ─────────────────────────────────────────────────────────────
-    //  Configuración de brillo
-    // ─────────────────────────────────────────────────────────────
     [Header("Brillo del Jarrón")]
     [Tooltip("Color de emisión a intensidad mínima (jarrón lleno)")]
     public Color glowColorMin = new Color(0.5f, 0.8f, 1f);
 
-    [Tooltip("Color de emisión a intensidad máxima (jarrón casi vacío)")]
+    [Tooltip("Color de emisión a intensidad alta antes del clímax final")]
     public Color glowColorMax = new Color(1f, 0.95f, 0.5f);
 
     [Tooltip("Intensidad mínima de emisión (HDR, en escala lineal)")]
     public float glowIntensityMin = 0f;
 
-    [Tooltip("Intensidad máxima de emisión antes de la explosión")]
+    [Tooltip("Intensidad máxima durante el progreso normal")]
     public float glowIntensityMax = 3f;
+
+    [Tooltip("Intensidad máxima que debe alcanzar el jarrón al llegar al win ratio")]
+    public float glowIntensityAtWin = 10f;
 
     [Tooltip("Velocidad de interpolación del brillo (más alto = más reactivo)")]
     public float glowSmoothSpeed = 3f;
 
-    // ─────────────────────────────────────────────────────────────
-    //  Configuración de explosión final
-    // ─────────────────────────────────────────────────────────────
-    [Header("Explosión de Luz Final")]
-    [Tooltip("¿Ya se activó la explosión?")]
-    private bool exploded = false;
+    [Header("Secuencia de Victoria")]
+    [Tooltip("Color del jarrón cuando alcanza su punto máximo")]
+    public Color victoryGlowColor = Color.white;
 
-    [Tooltip("Intensidad del flash de la explosión")]
-    public float explosionPeakIntensity = 8f;
-
-    [Tooltip("Duración del flash de la explosión (segundos)")]
-    public float explosionDuration = 0.6f;
-
-    [Tooltip("Color del flash de explosión")]
-    public Color explosionColor = Color.white;
-
-    [Tooltip("Luz puntual opcional que refuerza el efecto de explosión en la escena")]
+    [Tooltip("Luz puntual opcional que refuerza el efecto en la escena")]
     public Light explosionPointLight;
 
-    [Tooltip("Intensidad máxima de la luz puntual durante la explosión")]
+    [Tooltip("Intensidad máxima de la luz puntual durante la victoria")]
     public float explosionLightIntensity = 5f;
 
-    // ─────────────────────────────────────────────────────────────
-    //  Logo final (post-explosión)
-    // ─────────────────────────────────────────────────────────────
-    [Header("Logo Final")]
-    [Tooltip("Objeto 3D o Canvas del logo '25 + VHS + gafas VR' (se activa tras la explosión)")]
-    public GameObject logoObject;
+    [Header("Irradiación de Pantalla")]
+    [Tooltip("Porcentaje relativo al win ratio a partir del cual la pantalla empieza a blanquearse")]
+    [Range(0f, 1f)] public float screenGlowStart = 0.45f;
 
-    [Tooltip("Retardo entre el pico de la explosión y la aparición del logo")]
-    public float logoDelay = 0.3f;
+    [Tooltip("Curva del blanqueo progresivo de pantalla. Más alto = más suave al inicio, más agresivo al final")]
+    public float screenGlowExponent = 2.4f;
 
-    // ─────────────────────────────────────────────────────────────
-    //  Pulso de brillo al detectar nota
-    // ─────────────────────────────────────────────────────────────
+    [Tooltip("Opacidad máxima del blanco antes de llegar a la victoria")]
+    [Range(0f, 1f)] public float maxPreWinScreenAlpha = 0.82f;
+
+    [Tooltip("Tiempo que tarda en llegar de blanco fuerte a blanco total al ganar")]
+    public float screenFlashRampDuration = 0.22f;
+
+    [Tooltip("Tiempo que la pantalla permanece completamente blanca antes de cambiar de escena")]
+    public float fullWhiteHoldDuration = 0.8f;
+
     [Header("Pulso por Nota")]
     [Tooltip("Intensidad extra de emisión cuando se detecta una nota y se aplica fuerza")]
     public float notePulseIntensity = 1.5f;
@@ -91,104 +77,111 @@ public class JarGlowController : MonoBehaviour
     [Tooltip("Velocidad de decaimiento del pulso por nota")]
     public float notePulseDecay = 8f;
 
-    // ─────────────────────────────────────────────────────────────
-    //  Estado interno
-    // ─────────────────────────────────────────────────────────────
     private Material jarMaterial;
-    private float currentGlowIntensity = 0f;
-    private float notePulse = 0f;
+    private float currentGlowIntensity;
+    private float notePulse;
+    private bool exploded;
+    private Coroutine victorySequenceCoroutine;
+    private Color originalBaseColor = Color.white;
+    private int baseColorPropertyId = -1;
+    private bool hasBaseColorProperty;
+    private Canvas overlayCanvas;
+    private Image screenOverlay;
+
     private static readonly int EmissionColorID = Shader.PropertyToID("_EmissionColor");
 
-    // ─────────────────────────────────────────────────────────────
-    //  Inicialización
-    // ─────────────────────────────────────────────────────────────
     void Awake()
     {
-        // Usar el renderer del propio GameObject si no se asignó uno
         if (jarRenderer == null)
             jarRenderer = GetComponent<Renderer>();
 
-        // Crear una copia del material para no modificar el asset original
         if (jarRenderer != null)
         {
-            jarMaterial = jarRenderer.material; // Crea instancia automática
-            // Habilitar keyword de emisión para que funcione en runtime
+            jarMaterial = jarRenderer.material;
             jarMaterial.EnableKeyword("_EMISSION");
+
+            if (jarMaterial.HasProperty("_BaseColor"))
+                baseColorPropertyId = Shader.PropertyToID("_BaseColor");
+            else if (jarMaterial.HasProperty("_Color"))
+                baseColorPropertyId = Shader.PropertyToID("_Color");
+
+            hasBaseColorProperty = baseColorPropertyId != -1;
+            if (hasBaseColorProperty)
+                originalBaseColor = jarMaterial.GetColor(baseColorPropertyId);
         }
 
-        // Apagar la luz puntual al inicio
         if (explosionPointLight != null)
         {
             explosionPointLight.intensity = 0f;
             explosionPointLight.enabled = false;
         }
 
-        // Ocultar logo al inicio
-        if (logoObject != null)
-            logoObject.SetActive(false);
+        EnsureScreenOverlay();
+        SetScreenOverlayAlpha(0f);
     }
 
-    // ─────────────────────────────────────────────────────────────
-    //  Update — actualizar brillo cada frame
-    // ─────────────────────────────────────────────────────────────
     void Update()
     {
-        if (jarMaterial == null || exploded) return;
+        if (jarMaterial == null || exploded)
+            return;
 
-        float progress = GetProgress();
+        float progressToWin = GetProgressToWin();
+        float targetIntensity = Mathf.Lerp(glowIntensityMin, glowIntensityAtWin, progressToWin);
+        float regularCap = Mathf.Lerp(glowIntensityMin, glowIntensityMax, progressToWin);
+        targetIntensity = Mathf.Max(targetIntensity * 0.65f, regularCap);
 
-        // Intensidad objetivo basada en el progreso
-        float targetIntensity = Mathf.Lerp(glowIntensityMin, glowIntensityMax, progress);
-
-        // Sumar el pulso por nota (decae rápido)
         notePulse = Mathf.Max(0f, notePulse - notePulseDecay * Time.deltaTime);
         targetIntensity += notePulse;
 
-        // Suavizar la transición
         currentGlowIntensity = Mathf.Lerp(currentGlowIntensity, targetIntensity, Time.deltaTime * glowSmoothSpeed);
 
-        // Color interpolado según progreso
-        Color glowColor = Color.Lerp(glowColorMin, glowColorMax, progress);
+        Color glowColor = Color.Lerp(glowColorMin, glowColorMax, progressToWin);
+        if (progressToWin > 0.8f)
+            glowColor = Color.Lerp(glowColor, victoryGlowColor, (progressToWin - 0.8f) / 0.2f * 0.65f);
 
-        // Aplicar al material (multiplicar color por intensidad HDR)
         SetEmission(glowColor, currentGlowIntensity);
+        UpdateVictoryLight(progressToWin);
+        UpdateScreenGlow(progressToWin);
     }
 
-    // ─────────────────────────────────────────────────────────────
-    //  API pública
-    // ─────────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Llamar desde PitchDetector o GameManager cuando se aplica una fuerza exitosa.
-    /// Añade un pulso de brillo momentáneo al jarrón.
-    /// </summary>
     public void TriggerNotePulse()
     {
         notePulse = notePulseIntensity;
     }
 
-    /// <summary>
-    /// Activa la explosión de luz final y muestra el logo.
-    /// Llamado desde GameManager cuando IsWon() es verdadero.
-    /// </summary>
-    public void TriggerExplosion()
+    public void TriggerExplosion(Action onSequenceCompleted = null)
     {
-        if (exploded) return;
+        if (exploded)
+            return;
+
         exploded = true;
-        StartCoroutine(ExplosionSequence());
+
+        if (victorySequenceCoroutine != null)
+            StopCoroutine(victorySequenceCoroutine);
+
+        victorySequenceCoroutine = StartCoroutine(VictorySequence(onSequenceCompleted));
     }
 
-    /// <summary>
-    /// Reinicia el controlador de brillo (llamar al hacer Restart).
-    /// </summary>
     public void Reset()
     {
+        if (victorySequenceCoroutine != null)
+        {
+            StopCoroutine(victorySequenceCoroutine);
+            victorySequenceCoroutine = null;
+        }
+
         exploded = false;
         notePulse = 0f;
         currentGlowIntensity = 0f;
 
+        if (jarRenderer != null)
+            jarRenderer.enabled = true;
+
         if (jarMaterial != null)
+        {
             SetEmission(glowColorMin, 0f);
+            SetJarOpacity(1f);
+        }
 
         if (explosionPointLight != null)
         {
@@ -196,91 +189,163 @@ public class JarGlowController : MonoBehaviour
             explosionPointLight.enabled = false;
         }
 
-        if (logoObject != null)
-            logoObject.SetActive(false);
+        SetScreenOverlayAlpha(0f);
     }
 
-    // ─────────────────────────────────────────────────────────────
-    //  Corrutina de explosión
-    // ─────────────────────────────────────────────────────────────
-    private IEnumerator ExplosionSequence()
+    private IEnumerator VictorySequence(Action onSequenceCompleted)
     {
-        // ── Fase 1: Flash hacia arriba ──────────────────────────
-        float halfDuration = explosionDuration * 0.5f;
         float elapsed = 0f;
+        float startIntensity = currentGlowIntensity;
+        float startOverlayAlpha = GetScreenOverlayAlpha();
+        float startLightIntensity = explosionPointLight != null ? explosionPointLight.intensity : 0f;
 
         if (explosionPointLight != null)
             explosionPointLight.enabled = true;
 
-        while (elapsed < halfDuration)
+        while (elapsed < screenFlashRampDuration)
         {
             elapsed += Time.deltaTime;
-            float t = elapsed / halfDuration;
+            float t = Mathf.Clamp01(elapsed / Mathf.Max(0.0001f, screenFlashRampDuration));
 
-            SetEmission(explosionColor, Mathf.Lerp(currentGlowIntensity, explosionPeakIntensity, t));
+            currentGlowIntensity = Mathf.Lerp(startIntensity, glowIntensityAtWin, t);
+            SetEmission(victoryGlowColor, currentGlowIntensity);
+            SetScreenOverlayAlpha(Mathf.Lerp(startOverlayAlpha, 1f, t));
 
             if (explosionPointLight != null)
-                explosionPointLight.intensity = Mathf.Lerp(0f, explosionLightIntensity, t);
+                explosionPointLight.intensity = Mathf.Lerp(startLightIntensity, explosionLightIntensity, t);
 
             yield return null;
         }
 
-        // ── Fase 2: Flash hacia abajo ──────────────────────────
-        elapsed = 0f;
-        while (elapsed < halfDuration)
-        {
-            elapsed += Time.deltaTime;
-            float t = elapsed / halfDuration;
+        currentGlowIntensity = glowIntensityAtWin;
+        SetEmission(victoryGlowColor, currentGlowIntensity);
+        SetScreenOverlayAlpha(1f);
+        SetJarOpacity(0f);
 
-            SetEmission(explosionColor, Mathf.Lerp(explosionPeakIntensity, 0f, t));
+        if (jarRenderer != null)
+            jarRenderer.enabled = false;
 
-            if (explosionPointLight != null)
-                explosionPointLight.intensity = Mathf.Lerp(explosionLightIntensity, 0f, t);
-
-            yield return null;
-        }
-
-        // Apagar luz puntual
         if (explosionPointLight != null)
         {
-            explosionPointLight.intensity = 0f;
-            explosionPointLight.enabled = false;
+            explosionPointLight.enabled = true;
+            explosionPointLight.intensity = explosionLightIntensity;
         }
 
-        // Apagar emisión del jarrón
-        SetEmission(Color.black, 0f);
+        yield return new WaitForSeconds(fullWhiteHoldDuration);
 
-        // ── Mostrar logo tras el retardo ──────────────────────
-        yield return new WaitForSeconds(logoDelay);
-
-        if (logoObject != null)
-            logoObject.SetActive(true);
+        onSequenceCompleted?.Invoke();
+        victorySequenceCoroutine = null;
     }
 
-    // ─────────────────────────────────────────────────────────────
-    //  Helpers
-    // ─────────────────────────────────────────────────────────────
     private void SetEmission(Color color, float intensity)
     {
-        // HDR: multiplicar el color por la intensidad (en escala lineal)
         Color hdrColor = color * Mathf.Pow(2f, intensity);
         jarMaterial.SetColor(EmissionColorID, hdrColor);
-
-        // Actualizar el GI estático si el objeto es estático
-        // (en escenas dinámicas esto no es necesario)
-        // DynamicGI.SetEmissive(jarRenderer, hdrColor);
     }
 
-    private float GetProgress()
+    private float GetProgressToWin()
     {
-        // Prioridad 1: Usar UIController.SmoothedProgress (ya suavizado)
+        float progress = 0f;
+
         if (ui != null)
-            return ui.SmoothedProgress;
+            progress = ui.SmoothedProgress;
+        else if (candyManager != null && candyManager.totalCandies > 0)
+            progress = (float)candyManager.escapedCount / candyManager.totalCandies;
 
-        // Prioridad 2: Calcular directo desde CandyManager
-        if (candyManager != null && candyManager.totalCandies > 0)
-            return (float)candyManager.escapedCount / candyManager.totalCandies;
+        float winRatio = 1f;
+        if (candyManager != null && candyManager.config != null)
+            winRatio = Mathf.Max(0.0001f, candyManager.config.winRatio);
 
-        return 0f;
+        return Mathf.Clamp01(progress / winRatio);
+    }
+
+    private void UpdateVictoryLight(float progressToWin)
+    {
+        if (explosionPointLight == null)
+            return;
+
+        float targetLight = Mathf.Lerp(0f, explosionLightIntensity * 0.6f, progressToWin);
+        explosionPointLight.enabled = targetLight > 0.01f;
+        explosionPointLight.intensity = Mathf.Lerp(explosionPointLight.intensity, targetLight, Time.deltaTime * glowSmoothSpeed);
+    }
+
+    private void UpdateScreenGlow(float progressToWin)
+    {
+        EnsureScreenOverlay();
+        if (screenOverlay == null)
+            return;
+
+        float normalized = Mathf.InverseLerp(screenGlowStart, 1f, progressToWin);
+        normalized = Mathf.Clamp01(normalized);
+        float curved = Mathf.Pow(normalized, Mathf.Max(0.01f, screenGlowExponent));
+        SetScreenOverlayAlpha(curved * maxPreWinScreenAlpha);
+    }
+
+    private void SetJarOpacity(float alpha)
+    {
+        if (!hasBaseColorProperty || jarMaterial == null)
+            return;
+
+        Color color = originalBaseColor;
+        color.a *= Mathf.Clamp01(alpha);
+        jarMaterial.SetColor(baseColorPropertyId, color);
+    }
+
+    private void EnsureScreenOverlay()
+    {
+        if (screenOverlay != null)
+            return;
+
+        GameObject canvasObject = new GameObject("JarGlowOverlayCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        canvasObject.hideFlags = HideFlags.DontSave;
+
+        overlayCanvas = canvasObject.GetComponent<Canvas>();
+        overlayCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        overlayCanvas.sortingOrder = short.MaxValue;
+
+        CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+        scaler.matchWidthOrHeight = 0.5f;
+
+        GameObject imageObject = new GameObject("ScreenWhiteOverlay", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        imageObject.transform.SetParent(canvasObject.transform, false);
+
+        screenOverlay = imageObject.GetComponent<Image>();
+        screenOverlay.color = new Color(1f, 1f, 1f, 0f);
+        screenOverlay.raycastTarget = false;
+
+        RectTransform rect = screenOverlay.rectTransform;
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+    }
+
+    private void SetScreenOverlayAlpha(float alpha)
+    {
+        if (screenOverlay == null)
+            return;
+
+        Color color = screenOverlay.color;
+        color.a = Mathf.Clamp01(alpha);
+        screenOverlay.color = color;
+    }
+
+    private float GetScreenOverlayAlpha()
+    {
+        return screenOverlay != null ? screenOverlay.color.a : 0f;
+    }
+
+    private void OnDestroy()
+    {
+        if (overlayCanvas == null)
+            return;
+
+        if (Application.isPlaying)
+            Destroy(overlayCanvas.gameObject);
+        else
+            DestroyImmediate(overlayCanvas.gameObject);
     }
 }

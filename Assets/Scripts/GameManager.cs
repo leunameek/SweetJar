@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
@@ -13,10 +14,18 @@ public class GameManager : MonoBehaviour
     public UIController ui;
 
     [Header("Efectos Visuales")]
-    [Tooltip("Controlador de brillo del jarrón – asignar el GameObject del jarrón")]
+    [Tooltip("Controlador de brillo del jarron - asignar el GameObject del jarron")]
     public JarGlowController jarGlow;
 
+    [Header("Scene Flow")]
+    public string victorySceneName = "Victory";
+
     private bool won;
+
+    void Awake()
+    {
+        ConfigureUIButtonHandlers();
+    }
 
     void Start()
     {
@@ -52,13 +61,14 @@ public class GameManager : MonoBehaviour
         {
             won = true;
 
-            // Primero la explosión visual del jarrón
-            if (jarGlow != null)
-                jarGlow.TriggerExplosion();
+            micCapture.StopCapture();
+            ui.SetMicButtonState(false);
 
-            // Luego la pantalla de victoria (el logo aparece dentro de JarGlowController
-            // tras el flash; la win screen muestra el overlay de UI)
-            ui.ShowWinScreen();
+            // Primero la secuencia visual del jarron y, al terminar, la escena de victoria.
+            if (jarGlow != null)
+                jarGlow.TriggerExplosion(LoadVictoryScene);
+            else
+                LoadVictoryScene();
         }
     }
 
@@ -66,14 +76,16 @@ public class GameManager : MonoBehaviour
     {
         won = false;
         micCapture.StopCapture();
+        ui.SetMicButtonState(false);
 
-        // Reiniciar brillo del jarrón
+        // Reiniciar brillo del jarron
         if (jarGlow != null)
             jarGlow.Reset();
 
         candyManager.Spawn(config.candyCount, () => {
             bool ok = micCapture.StartCapture();
             if (!ok) Debug.LogWarning("[GameManager] No microphone found.");
+            ui.SetMicButtonState(ok, ok);
         });
 
         capController.ResetAngle();
@@ -83,20 +95,19 @@ public class GameManager : MonoBehaviour
     public void Restart()
     {
         won = false;
-        config.candyCount = Mathf.RoundToInt(ui.candySlider.value);
-        config.baseImpulse = ui.impulseSlider.value;
-        config.micSensitivity = ui.sensitivitySlider.value;
-        config.capRotationSpeed = ui.capSpeedSlider.value;
+        ApplyUIConfigValues();
 
         micCapture.StopCapture();
+        ui.SetMicButtonState(false);
 
-        // Reiniciar brillo del jarrón
+        // Reiniciar brillo del jarron
         if (jarGlow != null)
             jarGlow.Reset();
 
         candyManager.Spawn(config.candyCount, () => {
             bool ok = micCapture.StartCapture();
             if (!ok) Debug.LogWarning("[GameManager] No microphone found.");
+            ui.SetMicButtonState(ok, ok);
         });
 
         capController.ResetAngle();
@@ -108,12 +119,51 @@ public class GameManager : MonoBehaviour
         if (micCapture.IsActive)
         {
             micCapture.StopCapture();
-            ui.SetMicButtonText("Iniciar Micrófono");
+            ui.SetMicButtonState(false);
         }
         else
         {
             bool ok = micCapture.StartCapture();
-            ui.SetMicButtonText(ok ? "Detener Micrófono" : "No se encontró micrófono");
+            ui.SetMicButtonState(ok, ok);
         }
+    }
+
+    private void ConfigureUIButtonHandlers()
+    {
+        if (ui == null) return;
+
+        if (ui.restartButton != null)
+        {
+            ui.restartButton.onClick.RemoveListener(Restart);
+            ui.restartButton.onClick.AddListener(Restart);
+        }
+
+        if (ui.micButton != null)
+        {
+            ui.micButton.onClick.RemoveListener(OnMicButtonClicked);
+            ui.micButton.onClick.AddListener(OnMicButtonClicked);
+        }
+    }
+
+    private void ApplyUIConfigValues()
+    {
+        if (ui == null) return;
+
+        if (ui.candySlider != null)
+            config.candyCount = Mathf.RoundToInt(ui.candySlider.value);
+
+        if (ui.impulseSlider != null)
+            config.baseImpulse = ui.impulseSlider.value;
+
+        if (ui.sensitivitySlider != null)
+            config.micSensitivity = ui.sensitivitySlider.value;
+
+        if (ui.capSpeedSlider != null)
+            config.capRotationSpeed = ui.capSpeedSlider.value;
+    }
+
+    private void LoadVictoryScene()
+    {
+        SceneManager.LoadScene(victorySceneName);
     }
 }

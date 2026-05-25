@@ -16,7 +16,7 @@ MonoBehaviour:
   escapeMargin: 0.3
   escapeHoleRadius: 1.5
   capRotationSpeed: 1
-  candyCount: 1600
+  candyCount: 2000
   candyRadius: 0
   spawnRadius: 0
   spawnHeight: 4.8
@@ -24,14 +24,14 @@ MonoBehaviour:
   layerSize: 150
   candyBounciness: 0.35
   candyFriction: 0.4
-  preferredMicDevice: "Micr\xF3fono (ME6S)"
+  preferredMicDevice: 
   fftSize: 2048
   yinThreshold: 0.15
   minRms: 0.01
   noteStableMs: 100
   forceDebounceMs: 120
   baseImpulse: 2.5
-  micSensitivity: 1.6
+  micSensitivity: 2
   maxImpulse: 6
   maxCandySpeedY: 10
   holeAttractionStrength: 0.35
@@ -43,4 +43,4 @@ MonoBehaviour:
   noteG: 0.7
   noteA: 0.85
   noteB: 1
-  winRatio: 0.93
+  winRatio: 0.95
